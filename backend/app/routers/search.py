@@ -66,7 +66,7 @@ async def thumb(plex_key: str, session: Annotated[dict, Depends(require_auth)]):
     from app.config import get_settings
     settings = get_settings()
     url = f"{settings.plex_server_url}/library/metadata/{plex_key}/thumb"
-    from app.main import get_http_client
+    from app.http_client import get_http_client
     client = get_http_client()
     try:
         r = await client.get(url, params={"X-Plex-Token": token}, timeout=10.0)

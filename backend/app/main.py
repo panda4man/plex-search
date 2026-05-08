@@ -8,17 +8,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import get_settings
+from app.http_client import get_http_client, set_http_client  # noqa: F401 — re-exported
 from app.llm import ai_client
 from app.routers import auth, search
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
-
-_http_client: httpx.AsyncClient | None = None
-
-
-def get_http_client() -> httpx.AsyncClient:
-    return _http_client
 
 
 async def _check_ai_ready() -> None:
@@ -31,8 +26,8 @@ async def _check_ai_ready() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global _http_client
-    _http_client = httpx.AsyncClient(timeout=httpx.Timeout(120.0))
+    client = httpx.AsyncClient(timeout=httpx.Timeout(120.0))
+    set_http_client(client)
 
     await _check_ai_ready()
 
@@ -41,7 +36,7 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    await _http_client.aclose()
+    await client.aclose()
 
 
 app = FastAPI(title="PlexSearch", lifespan=lifespan)

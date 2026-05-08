@@ -18,7 +18,16 @@
       "WebFetch(domain:docs.together.ai)",
       "WebFetch(domain:api.together.xyz)",
       "WebFetch(domain:www.together.ai)",
-      "Bash(git -C /home/aclinton/Dev/plex-search status)"
+      "Bash(git -C /home/aclinton/Dev/plex-search status)",
+      "Bash(git commit -m ' *)",
+      "Bash(git add *)",
+      "Bash(git -C /home/aclinton/Dev/plex-search add backend/requirements.txt)",
+      "Bash(git -C /home/aclinton/Dev/plex-search commit -m ' *)",
+      "Bash(git -C /home/aclinton/Dev/plex-search add docker-compose.yml docker-compose.gpu.yml)",
+      "Bash(python3 -c \"import uuid; print\\(uuid.uuid4\\(\\)\\)\")",
+      "Bash(openssl rand *)",
+      "Bash(docker exec *)",
+      "Bash(git -C /home/aclinton/Dev/plex-search add -A)"
     ]
   },
   "enabledPlugins": {

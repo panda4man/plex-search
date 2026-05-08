@@ -1,5 +1,21 @@
+import json
 from functools import lru_cache
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Any
+
+from pydantic.fields import FieldInfo
+from pydantic_settings import BaseSettings, EnvSettingsSource, SettingsConfigDict
+
+
+class _FlexibleEnvSource(EnvSettingsSource):
+    """Env source that accepts comma-separated strings for list fields."""
+
+    def decode_complex_value(self, field_name: str, field: FieldInfo, value: Any) -> Any:
+        if isinstance(value, str):
+            try:
+                return json.loads(value)
+            except json.JSONDecodeError:
+                return [s.strip() for s in value.split(",") if s.strip()]
+        return super().decode_complex_value(field_name, field, value)
 
 
 class Settings(BaseSettings):
@@ -24,7 +40,6 @@ class Settings(BaseSettings):
     embed_model: str = ""
 
     # Optional API base overrides — use for local OpenAI-compat servers (vLLM, LocalAI, etc.)
-    # e.g. LLM_PROVIDER=openai, LLM_API_BASE=http://vllm:8000, LLM_MODEL=openai/mistral
     llm_api_base: str = ""
     embed_api_base: str = ""
 
@@ -38,9 +53,14 @@ class Settings(BaseSettings):
     # Adds Secure flag to session cookie — required for HTTPS, breaks plain HTTP
     session_https_only: bool = False
     frontend_url: str = "http://localhost"
+    # Accepts comma-separated: http://localhost,http://localhost:5173
     backend_cors_origins: list[str] = ["http://localhost"]
 
     chroma_persist_dir: str = "/data/chroma"
+
+    @classmethod
+    def settings_customise_sources(cls, settings_cls, env_settings, **kwargs):
+        return (_FlexibleEnvSource(settings_cls), *kwargs.values())
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

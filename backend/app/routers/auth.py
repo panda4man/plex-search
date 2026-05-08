@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 
 from app.auth import plex_sso
 from app.auth.session import require_auth
-from app.main import get_http_client
+from app.http_client import get_http_client
 from app.search import indexer
 
 router = APIRouter()
