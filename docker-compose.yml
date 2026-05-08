@@ -2,7 +2,7 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "80:80"
+      - "${FRONTEND_PORT:-3000}:80"
     depends_on:
       - backend
     networks:
@@ -11,7 +11,7 @@ services:
   backend:
     build: ./backend
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8001}:8000"
     depends_on:
       - ollama
     networks:
@@ -23,7 +23,7 @@ services:
   ollama:
     build: ./ollama
     ports:
-      - "11434:11434"
+      - "${OLLAMA_PORT:-11435}:11434"
     networks:
       - plex-search-net
     volumes:
@@ -31,13 +31,6 @@ services:
     environment:
       - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:7b}
       - OLLAMA_EMBED_MODEL=${OLLAMA_EMBED_MODEL:-nomic-embed-text}
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
 
 networks:
   plex-search-net:
