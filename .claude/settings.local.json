@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip show *)",
+      "Bash(pip3 show *)",
+      "Bash(python3 -c \"import plexapi; print\\(plexapi.__version__\\)\")",
+      "Bash(docker --version)",
+      "Bash(docker compose *)",
+      "Bash(npm --version)",
+      "Bash(npm create *)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(python3 -c ' *)",
+      "Bash(pip install *)",
+      "Bash(python3 -m venv .venv)",
+      "Bash(.venv/bin/pip install *)",
+      "Bash(.venv/bin/python -m pytest tests/ -v)",
+      "WebFetch(domain:docs.together.ai)",
+      "WebFetch(domain:api.together.xyz)",
+      "WebFetch(domain:www.together.ai)",
+      "Bash(git -C /home/aclinton/Dev/plex-search status)"
+    ]
+  },
+  "enabledPlugins": {
+    "caveman@caveman": true
+  }
+}

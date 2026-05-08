@@ -1,0 +1,36 @@
+# Environment — never commit secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Vue / Node
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+node_modules/
+
+# ChromaDB data
+data/
+
+# Docker volumes (if mounted locally)
+ollama-data/
+chroma-data/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo
