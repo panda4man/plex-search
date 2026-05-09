@@ -31,9 +31,20 @@ async def search(body: SearchRequest, session: Annotated[dict, Depends(require_a
     server = await plex_client.get_server(token)
     filters = await query_parser.parse_query(body.query)
 
-    plex_results = await plex_search.search_plex(server, filters, limit=200)
-    # Drop untagged items (personal videos, home content with no metadata)
-    plex_results = [r for r in plex_results if r.get("genres")]
+    # Only use Plex results when a meaningful filter was extracted —
+    # unfiltered Plex returns hundreds of high-rated movies that pollute
+    # thematic/semantic queries ("christian content", "inspiring movies", etc.)
+    has_plex_filter = any([
+        filters.genres, filters.year_from, filters.year_to,
+        filters.min_rating, filters.actors, filters.directors,
+        filters.media_type,
+    ])
+
+    if has_plex_filter:
+        plex_results = await plex_search.search_plex(server, filters, limit=200)
+        plex_results = [r for r in plex_results if r.get("genres")]
+    else:
+        plex_results = []
 
     # Vector search
     try:
@@ -43,7 +54,9 @@ async def search(body: SearchRequest, session: Annotated[dict, Depends(require_a
         logger.warning("Vector search unavailable: %s", e)
         vector_results = []
 
-    # Post-filter: media_type and exclude_titles applied to both result sets
+    # Post-filter both result sets
+    # Filter untagged items from vector results too
+    vector_results = [r for r in vector_results if r.get("genres")]
     if filters.media_type:
         vector_results = [r for r in vector_results if r.get("media_type") == filters.media_type]
     if filters.exclude_titles:
@@ -95,8 +108,16 @@ async def debug_search(body: SearchRequest, session: Annotated[dict, Depends(req
     server = await plex_client.get_server(token)
     filters = await query_parser.parse_query(body.query)
 
-    plex_results = await plex_search.search_plex(server, filters, limit=200)
-    plex_results = [r for r in plex_results if r.get("genres")]
+    has_plex_filter = any([
+        filters.genres, filters.year_from, filters.year_to,
+        filters.min_rating, filters.actors, filters.directors,
+        filters.media_type,
+    ])
+    if has_plex_filter:
+        plex_results = await plex_search.search_plex(server, filters, limit=200)
+        plex_results = [r for r in plex_results if r.get("genres")]
+    else:
+        plex_results = []
 
     try:
         embedding = await ai_client.embed(body.query)
@@ -104,6 +125,7 @@ async def debug_search(body: SearchRequest, session: Annotated[dict, Depends(req
     except Exception as e:
         vector_results = []
 
+    vector_results = [r for r in vector_results if r.get("genres")]
     if filters.media_type:
         vector_results = [r for r in vector_results if r.get("media_type") == filters.media_type]
     if filters.exclude_titles:

@@ -29,11 +29,20 @@ Output format:
 
 Rules:
 - media_type: "movie" for films, "show" for TV series, null if ambiguous
-- Always extract genres when the query describes a type of content:
+  IMPORTANT: "show me", "show me some", "find me", "give me", "I want" are
+  request phrases — NOT indicators of media_type. Only set media_type="show"
+  when the user explicitly says "TV show", "series", "episodes", or a show name.
+- Always extract genres when the query describes a type of content with a clear
+  Plex genre match:
   "zombie movies" → genres=["Horror"]
   "alien movies" → genres=["Science Fiction"]
   "romantic films" → genres=["Romance"]
   "superhero movies" → genres=["Action"]
+- Leave genres null when no standard Plex genre maps to the query theme:
+  "christian content", "faith-based movies", "religious films", "inspiring movies",
+  "feel-good films", "tearjerkers" → genres=null (let semantic search handle it)
+- exclude_titles: only use for franchise/series exclusions explicitly stated by the
+  user. Do NOT exclude well-known titles that are examples of the genre requested.
 - For decades: "90s" or "1990s" means year_from=1990, year_to=1999
 - min_rating: scale 0-10 (e.g. "highly rated"=7.5, "great"=8.0, "masterpiece"=9.0)
 - genres: use EXACT Plex genre names — Science Fiction (NOT Sci-Fi), Action,
@@ -53,6 +62,14 @@ Rules:
 """.strip()
 
 _FENCE_RE = re.compile(r"```(?:json)?(.*?)```", re.DOTALL)
+
+# Validated Plex genre names — anything outside this is silently dropped
+_PLEX_GENRES = {
+    "Action", "Adventure", "Animation", "Biography", "Comedy", "Crime",
+    "Documentary", "Drama", "Family", "Fantasy", "History", "Horror",
+    "Music", "Mystery", "Romance", "Science Fiction", "Thriller", "Western",
+    "Sport", "Reality", "Anime",
+}
 
 
 class SearchFilters(BaseModel):
@@ -83,7 +100,12 @@ async def parse_query(natural_query: str) -> SearchFilters:
 
     try:
         data = json.loads(raw.strip())
-        return SearchFilters.model_validate(data)
+        filters = SearchFilters.model_validate(data)
+        # Drop any genres the LLM hallucinated that don't exist in Plex
+        if filters.genres:
+            valid = [g for g in filters.genres if g in _PLEX_GENRES]
+            filters = filters.model_copy(update={"genres": valid or None})
+        return filters
     except (json.JSONDecodeError, ValidationError) as e:
         logger.warning("Failed to parse LLM output (returning empty filters): %s | raw=%r", e, raw)
         return SearchFilters()
