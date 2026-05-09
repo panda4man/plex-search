@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from app.config import get_settings
 from app.llm import ai_client
 from app.search import vector_store
-from app.tmdb.client import fetch_composers_batch
+from app.tmdb.client import fetch_enrichment_batch
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -27,7 +27,7 @@ def get_status() -> dict:
     return dict(_status)
 
 
-def _build_index_text(item, composers: list[str] | None = None) -> str:
+def _build_index_text(item, enrichment: dict | None = None) -> str:
     genres = ", ".join(g.tag for g in getattr(item, "genres", [])[:5])
     actors = ", ".join(r.tag for r in getattr(item, "roles", [])[:5])
     directors = ", ".join(d.tag for d in getattr(item, "directors", [])[:3])
@@ -35,12 +35,17 @@ def _build_index_text(item, composers: list[str] | None = None) -> str:
     summary = (getattr(item, "summary", "") or "")[:300]
     media_type = "Movie" if item.type == "movie" else "TV Show"
     content_rating = getattr(item, "contentRating", "") or ""
-    rated = f" Rated: {content_rating}." if content_rating else ""
-    music = f" Music by: {', '.join(composers)}." if composers else ""
+    e = enrichment or {}
+    rated      = f" Rated: {content_rating}." if content_rating else ""
+    music      = f" Music by: {', '.join(e.get('composers', []))}." if e.get("composers") else ""
+    keywords   = f" Tags: {', '.join(e.get('keywords', []))}." if e.get("keywords") else ""
+    companies  = f" Production: {', '.join(e.get('companies', []))}." if e.get("companies") else ""
+    collection = f" Part of: {e['collection']}." if e.get("collection") else ""
     return (
         f"{item.title} ({year}). {media_type}. "
         f"Genres: {genres}.{rated} {summary} "
-        f"Starring: {actors}. Directed by: {directors}.{music}"
+        f"Starring: {actors}. Directed by: {directors}."
+        f"{music}{keywords}{companies}{collection}"
     ).strip()
 
 
@@ -70,18 +75,18 @@ async def run_indexing(token: str) -> None:
 
         for batch_start in range(0, len(to_index), BATCH_SIZE):
             batch = to_index[batch_start: batch_start + BATCH_SIZE]
-            # Fetch TMDB composer data concurrently for entire batch
-            composers_map = await fetch_composers_batch(batch)
+            # Fetch TMDB enrichment (composers, keywords, companies, collection)
+            enrichment_map = await fetch_enrichment_batch(batch)
 
             texts = [
-                _build_index_text(item, composers_map.get(str(item.ratingKey)))
+                _build_index_text(item, enrichment_map.get(str(item.ratingKey)))
                 for item in batch
             ]
             metas = []
             embeddings = await ai_client.embed_batch(texts)
 
             for item, text, vec in zip(batch, texts, embeddings):
-                composers = composers_map.get(str(item.ratingKey), [])
+                e = enrichment_map.get(str(item.ratingKey), {})
                 metas.append({
                     "plex_key": str(item.ratingKey),
                     "machine_id": machine_id,
@@ -90,7 +95,10 @@ async def run_indexing(token: str) -> None:
                     "media_type": item.type,
                     "genres": ", ".join(g.tag for g in getattr(item, "genres", [])[:5]),
                     "content_rating": getattr(item, "contentRating", "") or "",
-                    "composers": ", ".join(composers),
+                    "composers": ", ".join(e.get("composers", [])),
+                    "keywords": ", ".join(e.get("keywords", [])),
+                    "companies": ", ".join(e.get("companies", [])),
+                    "collection": e.get("collection") or "",
                     "rating": float(getattr(item, "audienceRating", None) or 0),
                     "thumb": getattr(item, "thumb", "") or "",
                     "summary": (getattr(item, "summary", "") or "")[:500],
