@@ -78,6 +78,11 @@ async def search(body: SearchRequest, session: Annotated[dict, Depends(require_a
                 f"{_s.plex_server_url}/web/index.html#!/server/"
                 f"{r.get('machine_id','')}/details?key=/library/metadata/{r['plex_key']}"
             )
+        if not r.get("plex_app_url"):
+            r["plex_app_url"] = (
+                f"plex://preplay/?metadataKey=/library/metadata/{r['plex_key']}"
+                f"&server={r.get('machine_id','')}"
+            )
 
     return {
         "results": results[body.offset: body.offset + body.limit],

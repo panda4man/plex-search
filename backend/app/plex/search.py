@@ -66,6 +66,10 @@ def _serialize_item(item, server: PlexServer) -> dict:
             f"{settings.plex_server_url}/web/index.html#!/server/"
             f"{server.machineIdentifier}/details?key=/library/metadata/{item.ratingKey}"
         ),
+        "plex_app_url": (
+            f"plex://preplay/?metadataKey=/library/metadata/{item.ratingKey}"
+            f"&server={server.machineIdentifier}"
+        ),
         "seasons": len(item.seasons()) if item.type == "show" else None,
         "studio": getattr(item, "studio", None) if item.type == "movie" else None,
     }

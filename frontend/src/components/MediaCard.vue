@@ -3,8 +3,17 @@ import type { MediaResult } from '@/stores/search'
 
 const props = defineProps<{ item: MediaResult }>()
 
-function plexWebUrl(item: MediaResult): string {
-  return item.plex_web_url
+function openItem(item: MediaResult, e: MouseEvent) {
+  e.preventDefault()
+  // Try native app — fall back to web if app not installed
+  window.location.href = item.plex_app_url
+  const fallback = setTimeout(() => {
+    window.open(item.plex_web_url, '_blank')
+  }, 600)
+  // If user switches to app, cancel web fallback
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) clearTimeout(fallback)
+  }, { once: true })
 }
 
 function thumbUrl(item: MediaResult): string {
@@ -18,7 +27,7 @@ function formatRating(r: number | null): string {
 </script>
 
 <template>
-  <a class="card" :href="plexWebUrl(item)" target="_blank" rel="noopener">
+  <a class="card" :href="item.plex_app_url" @click="openItem(item, $event)" rel="noopener">
     <div class="thumb-wrap">
       <img :src="thumbUrl(item)" :alt="item.title" loading="lazy" @error="($event.target as HTMLImageElement).style.display='none'" />
       <span class="type-badge">{{ item.media_type === 'movie' ? 'Movie' : 'TV' }}</span>
