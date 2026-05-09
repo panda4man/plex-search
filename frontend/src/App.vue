@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
+import { RouterLink, RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
@@ -8,8 +8,9 @@ const auth = useAuthStore()
 <template>
   <div class="app">
     <nav v-if="auth.isAuthenticated" class="top-nav">
-      <span class="brand">PlexSearch</span>
+      <RouterLink to="/" class="brand">PlexSearch</RouterLink>
       <span class="user">{{ auth.user?.username }}</span>
+      <RouterLink to="/admin" class="nav-link">Admin</RouterLink>
       <button class="logout-btn" @click="auth.logout()">Sign out</button>
     </nav>
     <RouterView />
@@ -52,7 +53,15 @@ body {
   border-bottom: 1px solid var(--border);
 }
 
-.brand { font-weight: 700; color: var(--plex-yellow); font-size: 1.1rem; flex: 1; }
+.brand { font-weight: 700; color: var(--plex-yellow); font-size: 1.1rem; flex: 1; text-decoration: none; }
+
+.nav-link {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.nav-link:hover { color: #cdd6f4; }
 .user { color: var(--text-muted); font-size: 0.9rem; }
 
 .logout-btn {
