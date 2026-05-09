@@ -49,7 +49,9 @@ Rules:
 - genres: use EXACT Plex genre names — Science Fiction (NOT Sci-Fi), Action,
   Comedy, Drama, Horror, Thriller, Fantasy, Romance, Documentary, Animation,
   Crime, Mystery, Adventure, Family, Western, Music, Biography, History
-- If the query mentions an actor or director by name, include in actors/directors
+- If the query mentions an actor or director by name, include in actors/directors.
+  Always resolve to full name: "Nolan" → "Christopher Nolan", "Cameron" → "James Cameron",
+  "Spielberg" → "Steven Spielberg", "Tarantino" → "Quentin Tarantino", etc.
 - sort_by: "rating" if user wants best/top; "year" if newest/oldest; null otherwise
 - content_rating: MPAA/TV rating when user specifies one
   "pg13" or "PG-13" → "PG-13", "rated r" → "R", "family friendly" → "PG" or "G",

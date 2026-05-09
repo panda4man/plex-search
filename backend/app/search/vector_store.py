@@ -93,10 +93,10 @@ def query_with_filters(
             doc_conditions.append({"$contains": f"Genres: {genre}"})
     if actors:
         for actor in actors[:2]:
-            doc_conditions.append({"$contains": f"Starring: {actor}"})
+            doc_conditions.append({"$contains": actor})
     if directors:
         for director in directors[:1]:
-            doc_conditions.append({"$contains": f"Directed by: {director}"})
+            doc_conditions.append({"$contains": director})
 
     where_document: dict | None = None
     if len(doc_conditions) == 1:
