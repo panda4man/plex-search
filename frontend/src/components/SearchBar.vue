@@ -39,12 +39,13 @@ function submit() {
 
 input {
   flex: 1;
+  min-width: 0;
   background: #16213e;
   border: 2px solid var(--border);
   border-radius: 8px;
   padding: 0.75rem 1rem;
   color: #cdd6f4;
-  font-size: 1rem;
+  font-size: 16px; /* 16px prevents iOS auto-zoom */
   outline: none;
   transition: border-color 0.2s;
 }
@@ -63,11 +64,12 @@ button {
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  min-width: 100px;
+  min-width: 90px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background 0.2s;
+  flex-shrink: 0;
 }
 
 button:hover:not(:disabled) { background: #f0b429; }
@@ -83,4 +85,15 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 480px) {
+  .search-bar {
+    flex-direction: column;
+  }
+  button {
+    width: 100%;
+    min-width: unset;
+    padding: 0.75rem;
+  }
+}
 </style>

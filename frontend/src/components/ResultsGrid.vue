@@ -81,14 +81,21 @@ defineProps<{
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 1rem;
 }
 
 .loading-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 1rem;
+}
+
+@media (max-width: 480px) {
+  .grid, .loading-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
 }
 
 .skeleton-card {

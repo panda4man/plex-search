@@ -60,6 +60,13 @@ function handleSearch(query: string) {
   gap: 2rem;
 }
 
+@media (max-width: 480px) {
+  .home {
+    padding: 1rem;
+    gap: 1rem;
+  }
+}
+
 .search-section {
   display: flex;
   flex-direction: column;

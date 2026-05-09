@@ -60,6 +60,13 @@ body {
   cursor: pointer;
   font-size: 0.85rem;
   transition: color 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .logout-btn:hover { color: #cdd6f4; }
+
+@media (max-width: 480px) {
+  .top-nav { padding: 0.6rem 1rem; gap: 0.5rem; }
+  .user { display: none; }
+}
 </style>

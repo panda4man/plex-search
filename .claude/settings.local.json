@@ -27,7 +27,9 @@
       "Bash(python3 -c \"import uuid; print\\(uuid.uuid4\\(\\)\\)\")",
       "Bash(openssl rand *)",
       "Bash(docker exec *)",
-      "Bash(git -C /home/aclinton/Dev/plex-search add -A)"
+      "Bash(git -C /home/aclinton/Dev/plex-search add -A)",
+      "Bash(ip route *)",
+      "Bash(awk '{print $7; exit}')"
     ]
   },
   "enabledPlugins": {
