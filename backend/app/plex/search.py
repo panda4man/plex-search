@@ -62,6 +62,10 @@ def _serialize_item(item, server: PlexServer) -> dict:
         "thumb_url": thumb_url,
         "media_type": item.type,
         "machine_id": server.machineIdentifier,
+        "plex_web_url": (
+            f"{settings.plex_server_url}/web/index.html#!/server/"
+            f"{server.machineIdentifier}/details?key=/library/metadata/{item.ratingKey}"
+        ),
         "seasons": len(item.seasons()) if item.type == "show" else None,
         "studio": getattr(item, "studio", None) if item.type == "movie" else None,
     }

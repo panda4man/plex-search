@@ -69,6 +69,16 @@ async def search(body: SearchRequest, session: Annotated[dict, Depends(require_a
 
     results = merge_results(plex_results, vector_results, limit=body.limit)
 
+    # Ensure all results have plex_web_url (vector-only results won't have it)
+    from app.config import get_settings as _gs
+    _s = _gs()
+    for r in results:
+        if not r.get("plex_web_url"):
+            r["plex_web_url"] = (
+                f"{_s.plex_server_url}/web/index.html#!/server/"
+                f"{r.get('machine_id','')}/details?key=/library/metadata/{r['plex_key']}"
+            )
+
     return {
         "results": results[body.offset: body.offset + body.limit],
         "total": len(results),

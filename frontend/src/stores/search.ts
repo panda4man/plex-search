@@ -13,6 +13,7 @@ export interface MediaResult {
   thumb_url: string | null
   media_type: 'movie' | 'show'
   machine_id: string
+  plex_web_url: string
   seasons: number | null
   studio: string | null
 }

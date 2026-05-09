@@ -4,7 +4,7 @@ import type { MediaResult } from '@/stores/search'
 const props = defineProps<{ item: MediaResult }>()
 
 function plexWebUrl(item: MediaResult): string {
-  return `${window.location.protocol}//${window.location.hostname}:32400/web/index.html#!/server/${item.machine_id}/details?key=/library/metadata/${item.plex_key}`
+  return item.plex_web_url
 }
 
 function thumbUrl(item: MediaResult): string {
