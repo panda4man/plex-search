@@ -66,6 +66,9 @@ async def search(body: SearchRequest, session: Annotated[dict, Depends(require_a
 
     try:
         embedding = await ai_client.embed(body.query)
+        # When filtering by actor/director, structural filter does the precision work
+        # — drop similarity threshold so all matches are returned regardless of score
+        has_person_filter = bool(filters.actors or filters.directors)
         results = vector_store.query_with_filters(
             embedding=embedding,
             media_type=filters.media_type,
@@ -77,6 +80,7 @@ async def search(body: SearchRequest, session: Annotated[dict, Depends(require_a
             directors=filters.directors,
             content_rating=filters.content_rating,
             n_results=min(body.limit + 50, 200),
+            score_threshold=0.0 if has_person_filter else 0.50,
         )
     except Exception as e:
         logger.warning("Vector search failed: %s", e)

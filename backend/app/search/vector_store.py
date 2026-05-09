@@ -61,6 +61,7 @@ def query_with_filters(
     directors: list[str] | None = None,
     content_rating: str | None = None,
     n_results: int = 50,
+    score_threshold: float = 0.50,
 ) -> list[dict]:
     col = get_collection()
     count = col.count()
@@ -125,7 +126,7 @@ def query_with_filters(
     out = []
     for meta, dist in zip(metadatas, distances):
         score = float(1.0 - dist)
-        if score >= 0.50:
+        if score >= score_threshold:
             meta["_vector_score"] = score
             out.append(meta)
     return out
