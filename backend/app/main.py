@@ -47,7 +47,6 @@ async def lifespan(app: FastAPI):
     set_http_client(client)
 
     await _check_ai_ready()
-    asyncio.create_task(_warmup_models())
 
     from app.search.indexer import start_indexing_task
     asyncio.create_task(start_indexing_task())
