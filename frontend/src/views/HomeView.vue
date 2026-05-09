@@ -52,9 +52,11 @@ function handleSearch(query: string) {
 
 <style scoped>
 .home {
+  flex: 1;
+  width: 100%;
   max-width: 1400px;
   margin: 0 auto;
-  padding: 2rem 1.5rem;
+  padding: 2rem;
   display: flex;
   flex-direction: column;
   gap: 2rem;
@@ -66,6 +68,7 @@ function handleSearch(query: string) {
     gap: 1rem;
   }
 }
+
 
 .search-section {
   display: flex;
