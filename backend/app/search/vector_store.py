@@ -44,10 +44,13 @@ def query_similar(embedding: list[float], n_results: int = 50) -> list[dict]:
     )
     metadatas = results["metadatas"][0]
     distances = results["distances"][0]
-    # Attach similarity score (cosine distance → similarity: 1 - distance)
+    out = []
     for meta, dist in zip(metadatas, distances):
-        meta["_vector_score"] = float(1.0 - dist)
-    return metadatas
+        score = float(1.0 - dist)
+        if score >= 0.50:  # discard low-confidence matches
+            meta["_vector_score"] = score
+            out.append(meta)
+    return out
 
 
 def get_indexed_ids() -> set[str]:

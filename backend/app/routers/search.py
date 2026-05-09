@@ -32,6 +32,8 @@ async def search(body: SearchRequest, session: Annotated[dict, Depends(require_a
     filters = await query_parser.parse_query(body.query)
 
     plex_results = await plex_search.search_plex(server, filters, limit=200)
+    # Drop untagged items (personal videos, home content with no metadata)
+    plex_results = [r for r in plex_results if r.get("genres")]
 
     # Vector search
     try:
@@ -40,6 +42,17 @@ async def search(body: SearchRequest, session: Annotated[dict, Depends(require_a
     except Exception as e:
         logger.warning("Vector search unavailable: %s", e)
         vector_results = []
+
+    # Post-filter: media_type and exclude_titles applied to both result sets
+    if filters.media_type:
+        vector_results = [r for r in vector_results if r.get("media_type") == filters.media_type]
+    if filters.exclude_titles:
+        excl = [t.lower() for t in filters.exclude_titles]
+        def not_excluded(r: dict) -> bool:
+            title = r.get("title", "").lower()
+            return not any(e in title for e in excl)
+        plex_results = [r for r in plex_results if not_excluded(r)]
+        vector_results = [r for r in vector_results if not_excluded(r)]
 
     results = merge_results(plex_results, vector_results, limit=body.limit)
 
@@ -73,6 +86,41 @@ async def thumb(plex_key: str, session: Annotated[dict, Depends(require_auth)]):
         return Response(content=r.content, media_type=r.headers.get("content-type", "image/jpeg"))
     except Exception:
         return Response(status_code=404)
+
+
+@router.post("/debug/search")
+async def debug_search(body: SearchRequest, session: Annotated[dict, Depends(require_auth)]):
+    """Returns parsed filters, top plex results, top vector results, and final merged — for tuning."""
+    token = session["plex_token"]
+    server = await plex_client.get_server(token)
+    filters = await query_parser.parse_query(body.query)
+
+    plex_results = await plex_search.search_plex(server, filters, limit=200)
+    plex_results = [r for r in plex_results if r.get("genres")]
+
+    try:
+        embedding = await ai_client.embed(body.query)
+        vector_results = vector_store.query_similar(embedding, n_results=50)
+    except Exception as e:
+        vector_results = []
+
+    if filters.media_type:
+        vector_results = [r for r in vector_results if r.get("media_type") == filters.media_type]
+    if filters.exclude_titles:
+        excl = [t.lower() for t in filters.exclude_titles]
+        plex_results = [r for r in plex_results if not any(e in r.get("title","").lower() for e in excl)]
+        vector_results = [r for r in vector_results if not any(e in r.get("title","").lower() for e in excl)]
+
+    merged = merge_results(plex_results, vector_results, limit=body.limit)
+
+    return {
+        "query": body.query,
+        "llm_filters": filters.model_dump(exclude_none=True),
+        "plex_result_count": len(plex_results),
+        "plex_top5": [{"title": r["title"], "year": r.get("year"), "genres": r.get("genres")} for r in plex_results[:5]],
+        "vector_top5": [{"title": r["title"], "year": r.get("year"), "score": round(r.get("_vector_score", 0), 3)} for r in vector_results[:5]],
+        "merged_top10": [{"title": r["title"], "year": r.get("year"), "genres": r.get("genres")} for r in merged[:10]],
+    }
 
 
 @router.get("/admin/index-status")

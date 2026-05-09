@@ -23,17 +23,32 @@ Output format:
   "actors": ["string"] | null,
   "directors": ["string"] | null,
   "title_keywords": ["string"] | null,
+  "exclude_titles": ["string"] | null,
   "sort_by": "rating" | "year" | "title" | "added" | null
 }
 
 Rules:
 - media_type: "movie" for films, "show" for TV series, null if ambiguous
+- Always extract genres when the query describes a type of content:
+  "zombie movies" → genres=["Horror"]
+  "alien movies" → genres=["Science Fiction"]
+  "romantic films" → genres=["Romance"]
+  "superhero movies" → genres=["Action"]
 - For decades: "90s" or "1990s" means year_from=1990, year_to=1999
 - min_rating: scale 0-10 (e.g. "highly rated"=7.5, "great"=8.0, "masterpiece"=9.0)
-- genres: use standard names: Action, Comedy, Drama, Horror, Thriller, Sci-Fi,
-  Fantasy, Romance, Documentary, Animation, Crime, Mystery, Adventure, Family
+- genres: use EXACT Plex genre names — Science Fiction (NOT Sci-Fi), Action,
+  Comedy, Drama, Horror, Thriller, Fantasy, Romance, Documentary, Animation,
+  Crime, Mystery, Adventure, Family, Western, Music, Biography, History
 - If the query mentions an actor or director by name, include in actors/directors
 - sort_by: "rating" if user wants best/top; "year" if newest/oldest; null otherwise
+- exclude_titles: keywords to exclude from results — use when user says "not X",
+  "except X", "but not X franchise" (e.g. "alien movies not from alien franchise"
+  → exclude_titles=["Alien", "Aliens", "Prometheus", "Covenant"])
+- title_keywords: ONLY use when user is searching by a specific movie/show name
+  (e.g. "show me the matrix" → title_keywords=["matrix"])
+  Do NOT use for content descriptions like "zombie", "space", "romantic" — those are
+  handled by genres or left for semantic search. Leave title_keywords null for
+  queries like "zombie movies", "films about space", "scary movies".
 - Return ONLY the JSON object. No explanation, no markdown, no code blocks.
 """.strip()
 
@@ -49,6 +64,7 @@ class SearchFilters(BaseModel):
     actors: list[str] | None = None
     directors: list[str] | None = None
     title_keywords: list[str] | None = None
+    exclude_titles: list[str] | None = None
     sort_by: Literal["rating", "year", "title", "added"] | None = None
 
 

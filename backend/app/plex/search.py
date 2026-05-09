@@ -31,7 +31,9 @@ def _build_plex_kwargs(filters: SearchFilters) -> dict[str, Any]:
         kwargs["director"] = filters.directors[0]
     if filters.actors:
         kwargs["actor"] = filters.actors[0]
-    if filters.title_keywords:
+    # title_keywords only used for Plex title search when no other filters set
+    # (avoids over-restricting genre queries like "zombie movies")
+    if filters.title_keywords and not filters.genres and not filters.actors and not filters.directors:
         kwargs["title"] = " ".join(filters.title_keywords)
     return kwargs
 
