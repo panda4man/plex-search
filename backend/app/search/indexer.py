@@ -19,7 +19,7 @@ _status = {
     "error": None,
 }
 
-BATCH_SIZE = 20
+BATCH_SIZE = 100
 
 
 def get_status() -> dict:
@@ -68,11 +68,9 @@ async def run_indexing(token: str) -> None:
             batch = to_index[batch_start: batch_start + BATCH_SIZE]
             texts = [_build_index_text(item) for item in batch]
             metas = []
-            embeddings = []
+            embeddings = await ai_client.embed_batch(texts)
 
-            for item, text in zip(batch, texts):
-                vec = await ai_client.embed(text)
-                embeddings.append(vec)
+            for item, text, vec in zip(batch, texts, embeddings):
                 metas.append({
                     "plex_key": str(item.ratingKey),
                     "machine_id": machine_id,

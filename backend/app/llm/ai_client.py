@@ -99,13 +99,39 @@ async def chat(system_prompt: str, user_message: str) -> str:
     return response.choices[0].message.content
 
 
+def _ollama_embed_base() -> str:
+    s = get_settings()
+    return s.embed_api_base or s.ollama_base_url
+
+
 async def embed(text: str) -> list[float]:
+    results = await embed_batch([text])
+    return results[0]
+
+
+async def embed_batch(texts: list[str]) -> list[list[float]]:
+    """Embed multiple texts in a single request. Much faster than sequential embed() calls."""
+    s = get_settings()
+
+    if s.embed_provider == "ollama":
+        # Use Ollama's native /api/embed batch endpoint — one HTTP call for all texts
+        import httpx
+        model = s.embed_model or s.ollama_embed_model
+        async with httpx.AsyncClient(timeout=httpx.Timeout(120.0)) as client:
+            r = await client.post(
+                f"{_ollama_embed_base()}/api/embed",
+                json={"model": model, "input": texts},
+            )
+            r.raise_for_status()
+            return r.json()["embeddings"]
+
+    # Cloud providers: LiteLLM handles batch natively
     response = await litellm.aembedding(
         model=_embed_model(),
-        input=[text],
+        input=texts,
         **_embed_kwargs(),
     )
-    return response.data[0]["embedding"]
+    return [item["embedding"] for item in response.data]
 
 
 async def is_ready() -> bool:
