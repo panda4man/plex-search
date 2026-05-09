@@ -38,6 +38,7 @@ function formatRating(r: number | null): string {
         <span v-if="item.year">{{ item.year }}</span>
         <span v-if="item.seasons">· {{ item.seasons }}S</span>
         <span v-if="item.rating" class="rating">★ {{ formatRating(item.rating) }}</span>
+        <span v-if="item.content_rating" class="content-rating">{{ item.content_rating }}</span>
       </div>
       <div class="genres">
         <span v-for="g in item.genres.slice(0, 3)" :key="g" class="genre-tag">{{ g }}</span>
@@ -118,6 +119,15 @@ function formatRating(r: number | null): string {
 }
 
 .rating { color: var(--plex-yellow); }
+
+.content-rating {
+  border: 1px solid var(--text-muted);
+  border-radius: 3px;
+  padding: 0 4px;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
 
 .genres {
   display: flex;

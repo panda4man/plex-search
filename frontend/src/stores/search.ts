@@ -15,6 +15,7 @@ export interface MediaResult {
   machine_id: string
   plex_web_url: string
   plex_app_url: string
+  content_rating: string | null
   seasons: number | null
   studio: string | null
 }
