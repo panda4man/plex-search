@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     anthropic_api_key: str = ""
 
+    # TMDB — composer augmentation during indexing (optional)
+    # Get Read Access Token at: https://www.themoviedb.org/settings/api
+    tmdb_read_access_token: str = ""
+
     session_secret: str
     # Set to true when serving over HTTPS (e.g. behind Cloudflare Tunnel)
     # Adds Secure flag to session cookie — required for HTTPS, breaks plain HTTP

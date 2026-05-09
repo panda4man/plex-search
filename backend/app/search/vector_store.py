@@ -60,6 +60,7 @@ def query_with_filters(
     actors: list[str] | None = None,
     directors: list[str] | None = None,
     content_rating: str | None = None,
+    composers: list[str] | None = None,
     n_results: int = 50,
     score_threshold: float = 0.50,
 ) -> list[dict]:
@@ -98,6 +99,9 @@ def query_with_filters(
     if directors:
         for director in directors[:1]:
             doc_conditions.append({"$contains": director})
+    if composers:
+        for composer in composers[:2]:
+            doc_conditions.append({"$contains": composer})
 
     where_document: dict | None = None
     if len(doc_conditions) == 1:

@@ -25,6 +25,7 @@ Output format:
   "title_keywords": ["string"] | null,
   "exclude_titles": ["string"] | null,
   "content_rating": "G" | "PG" | "PG-13" | "R" | "NC-17" | "TV-G" | "TV-PG" | "TV-14" | "TV-MA" | null,
+  "composers": ["string"] | null,
   "sort_by": "rating" | "year" | "title" | "added" | null
 }
 
@@ -53,6 +54,9 @@ Rules:
   Always resolve to full name: "Nolan" → "Christopher Nolan", "Cameron" → "James Cameron",
   "Spielberg" → "Steven Spielberg", "Tarantino" → "Quentin Tarantino", etc.
 - sort_by: "rating" if user wants best/top; "year" if newest/oldest; null otherwise
+- composers: when user asks for films scored/composed by someone.
+  Always use full name: "Zimmer" → "Hans Zimmer", "Williams" → "John Williams",
+  "Morricone" → "Ennio Morricone", "Herrmann" → "Bernard Herrmann"
 - content_rating: MPAA/TV rating when user specifies one
   "pg13" or "PG-13" → "PG-13", "rated r" → "R", "family friendly" → "PG" or "G",
   "for kids" → "G", "adult content" → "R" or "TV-MA"
@@ -90,6 +94,7 @@ class SearchFilters(BaseModel):
     title_keywords: list[str] | None = None
     exclude_titles: list[str] | None = None
     content_rating: Literal["G", "PG", "PG-13", "R", "NC-17", "TV-G", "TV-PG", "TV-14", "TV-MA"] | None = None
+    composers: list[str] | None = None
     sort_by: Literal["rating", "year", "title", "added"] | None = None
 
 
