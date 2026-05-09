@@ -93,8 +93,8 @@ defineProps<{
 
 @media (max-width: 480px) {
   .grid, .loading-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.5rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
   }
 }
 
