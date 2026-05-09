@@ -24,12 +24,30 @@ async def _check_ai_ready() -> None:
         logger.warning("AI backend not ready at startup (will retry on first request).")
 
 
+async def _warmup_models() -> None:
+    """Load LLM and embed model into VRAM before first user request."""
+    try:
+        logger.info("Warming up embed model...")
+        await ai_client.embed("warmup")
+        logger.info("Embed model warm.")
+    except Exception as e:
+        logger.warning("Embed warmup failed (non-fatal): %s", e)
+
+    try:
+        logger.info("Warming up LLM...")
+        await ai_client.chat("You are helpful.", "hi")
+        logger.info("LLM warm.")
+    except Exception as e:
+        logger.warning("LLM warmup failed (non-fatal): %s", e)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     client = httpx.AsyncClient(timeout=httpx.Timeout(120.0))
     set_http_client(client)
 
     await _check_ai_ready()
+    asyncio.create_task(_warmup_models())
 
     from app.search.indexer import start_indexing_task
     asyncio.create_task(start_indexing_task())

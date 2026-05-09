@@ -29,7 +29,12 @@
       "Bash(docker exec *)",
       "Bash(git -C /home/aclinton/Dev/plex-search add -A)",
       "Bash(ip route *)",
-      "Bash(awk '{print $7; exit}')"
+      "Bash(awk '{print $7; exit}')",
+      "Bash(curl -s http://localhost:8001/api/health)",
+      "Bash(curl -s -X POST http://localhost:8001/api/search -H 'Content-Type: application/json' -d '{\"query\": \"action movies\"}')",
+      "Bash(kill %1)",
+      "Bash(wait)",
+      "Bash(curl -s http://192.168.50.46:11435/api/embed -d '{\"model\":\"nomic-embed-text\",\"input\":[\"hello world\",\"test\"]}')"
     ]
   },
   "enabledPlugins": {
