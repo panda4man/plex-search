@@ -75,6 +75,7 @@ async def search(body: SearchRequest, session: Annotated[dict, Depends(require_a
             genres=filters.genres,
             actors=filters.actors,
             directors=filters.directors,
+            content_rating=filters.content_rating,
             n_results=min(body.limit + 50, 200),
         )
     except Exception as e:
@@ -128,6 +129,7 @@ async def debug_search(body: SearchRequest, session: Annotated[dict, Depends(req
             genres=filters.genres,
             actors=filters.actors,
             directors=filters.directors,
+            content_rating=filters.content_rating,
             n_results=100,
         )
     except Exception as e:

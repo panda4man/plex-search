@@ -59,6 +59,7 @@ def query_with_filters(
     genres: list[str] | None = None,
     actors: list[str] | None = None,
     directors: list[str] | None = None,
+    content_rating: str | None = None,
     n_results: int = 50,
 ) -> list[dict]:
     col = get_collection()
@@ -85,6 +86,8 @@ def query_with_filters(
 
     # Document where clause (text containment — uses indexed document text)
     doc_conditions: list[dict] = []
+    if content_rating:
+        doc_conditions.append({"$contains": f"Rated: {content_rating}"})
     if genres:
         for genre in genres[:2]:
             doc_conditions.append({"$contains": f"Genres: {genre}"})

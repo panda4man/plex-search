@@ -24,6 +24,7 @@ Output format:
   "directors": ["string"] | null,
   "title_keywords": ["string"] | null,
   "exclude_titles": ["string"] | null,
+  "content_rating": "G" | "PG" | "PG-13" | "R" | "NC-17" | "TV-G" | "TV-PG" | "TV-14" | "TV-MA" | null,
   "sort_by": "rating" | "year" | "title" | "added" | null
 }
 
@@ -50,6 +51,10 @@ Rules:
   Crime, Mystery, Adventure, Family, Western, Music, Biography, History
 - If the query mentions an actor or director by name, include in actors/directors
 - sort_by: "rating" if user wants best/top; "year" if newest/oldest; null otherwise
+- content_rating: MPAA/TV rating when user specifies one
+  "pg13" or "PG-13" → "PG-13", "rated r" → "R", "family friendly" → "PG" or "G",
+  "for kids" → "G", "adult content" → "R" or "TV-MA"
+  Do NOT use min_rating for content ratings — use this field instead.
 - exclude_titles: keywords to exclude from results — use when user says "not X",
   "except X", "but not X franchise" (e.g. "alien movies not from alien franchise"
   → exclude_titles=["Alien", "Aliens", "Prometheus", "Covenant"])
@@ -82,6 +87,7 @@ class SearchFilters(BaseModel):
     directors: list[str] | None = None
     title_keywords: list[str] | None = None
     exclude_titles: list[str] | None = None
+    content_rating: Literal["G", "PG", "PG-13", "R", "NC-17", "TV-G", "TV-PG", "TV-14", "TV-MA"] | None = None
     sort_by: Literal["rating", "year", "title", "added"] | None = None
 
 

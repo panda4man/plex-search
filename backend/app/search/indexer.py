@@ -33,9 +33,11 @@ def _build_index_text(item) -> str:
     year = getattr(item, "year", "") or ""
     summary = (getattr(item, "summary", "") or "")[:300]
     media_type = "Movie" if item.type == "movie" else "TV Show"
+    content_rating = getattr(item, "contentRating", "") or ""
+    rated = f" Rated: {content_rating}." if content_rating else ""
     return (
         f"{item.title} ({year}). {media_type}. "
-        f"Genres: {genres}. {summary} "
+        f"Genres: {genres}.{rated} {summary} "
         f"Starring: {actors}. Directed by: {directors}."
     ).strip()
 
@@ -78,6 +80,7 @@ async def run_indexing(token: str) -> None:
                     "year": getattr(item, "year", None) or 0,
                     "media_type": item.type,
                     "genres": ", ".join(g.tag for g in getattr(item, "genres", [])[:5]),
+                    "content_rating": getattr(item, "contentRating", "") or "",
                     "rating": float(getattr(item, "audienceRating", None) or 0),
                     "thumb": getattr(item, "thumb", "") or "",
                     "summary": (getattr(item, "summary", "") or "")[:500],
