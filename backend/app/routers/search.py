@@ -1,20 +1,22 @@
+import asyncio
 import logging
 from typing import Annotated
 
-import httpx
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 from pydantic import BaseModel
 
 from app.auth.session import require_auth
+from app.config import get_settings
+from app.http_client import get_http_client
 from app.llm import ai_client, query_parser
 from app.plex import client as plex_client
 from app.plex import search as plex_search
 from app.search import indexer, vector_store
-from app.search.merge import merge_results
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+settings = get_settings()
 
 
 class SearchRequest(BaseModel):
@@ -23,66 +25,65 @@ class SearchRequest(BaseModel):
     offset: int = 0
 
 
+def _build_urls(results: list[dict]) -> None:
+    """Add plex_web_url and plex_app_url to every result in-place."""
+    for r in results:
+        key = r["plex_key"]
+        mid = r.get("machine_id", "")
+        r["plex_web_url"] = (
+            f"{settings.plex_server_url}/web/index.html#!/server/{mid}"
+            f"/details?key=/library/metadata/{key}"
+        )
+        r["plex_app_url"] = (
+            f"plex://preplay/?metadataKey=/library/metadata/{key}&server={mid}"
+        )
+
+
+def _post_filter(results: list[dict], filters) -> list[dict]:
+    results = [r for r in results if r.get("genres")]
+    if filters.exclude_titles:
+        excl = [t.lower() for t in filters.exclude_titles]
+        results = [r for r in results if not any(e in r.get("title", "").lower() for e in excl)]
+    return results
+
+
+def _rank(results: list[dict]) -> list[dict]:
+    """Re-rank by combining vector similarity with stored Plex rating."""
+    for r in results:
+        vec = r.get("_vector_score", 0.5)
+        rating = float(r.get("rating") or 0) / 10.0
+        r["_score"] = 0.7 * vec + 0.3 * rating
+    results.sort(key=lambda x: x["_score"], reverse=True)
+    for r in results:
+        r.pop("_score", None)
+        r.pop("_vector_score", None)
+    return results
 
 
 @router.post("/search")
 async def search(body: SearchRequest, session: Annotated[dict, Depends(require_auth)]):
-    token = session["plex_token"]
-    server = await plex_client.get_server(token)
     filters = await query_parser.parse_query(body.query)
 
-    # Only use Plex results when a meaningful filter was extracted —
-    # unfiltered Plex returns hundreds of high-rated movies that pollute
-    # thematic/semantic queries ("christian content", "inspiring movies", etc.)
-    has_plex_filter = any([
-        filters.genres, filters.year_from, filters.year_to,
-        filters.min_rating, filters.actors, filters.directors,
-        filters.media_type,
-    ])
-
-    if has_plex_filter:
-        plex_results = await plex_search.search_plex(server, filters, limit=200)
-        plex_results = [r for r in plex_results if r.get("genres")]
-    else:
-        plex_results = []
-
-    # Vector search
     try:
         embedding = await ai_client.embed(body.query)
-        vector_results = vector_store.query_similar(embedding, n_results=50)
+        results = vector_store.query_with_filters(
+            embedding=embedding,
+            media_type=filters.media_type,
+            year_from=filters.year_from,
+            year_to=filters.year_to,
+            min_rating=filters.min_rating,
+            genres=filters.genres,
+            actors=filters.actors,
+            directors=filters.directors,
+            n_results=min(body.limit + 50, 200),
+        )
     except Exception as e:
-        logger.warning("Vector search unavailable: %s", e)
-        vector_results = []
+        logger.warning("Vector search failed: %s", e)
+        results = []
 
-    # Post-filter both result sets
-    # Filter untagged items from vector results too
-    vector_results = [r for r in vector_results if r.get("genres")]
-    if filters.media_type:
-        vector_results = [r for r in vector_results if r.get("media_type") == filters.media_type]
-    if filters.exclude_titles:
-        excl = [t.lower() for t in filters.exclude_titles]
-        def not_excluded(r: dict) -> bool:
-            title = r.get("title", "").lower()
-            return not any(e in title for e in excl)
-        plex_results = [r for r in plex_results if not_excluded(r)]
-        vector_results = [r for r in vector_results if not_excluded(r)]
-
-    results = merge_results(plex_results, vector_results, limit=body.limit)
-
-    # Ensure all results have plex_web_url (vector-only results won't have it)
-    from app.config import get_settings as _gs
-    _s = _gs()
-    for r in results:
-        if not r.get("plex_web_url"):
-            r["plex_web_url"] = (
-                f"{_s.plex_server_url}/web/index.html#!/server/"
-                f"{r.get('machine_id','')}/details?key=/library/metadata/{r['plex_key']}"
-            )
-        if not r.get("plex_app_url"):
-            r["plex_app_url"] = (
-                f"plex://preplay/?metadataKey=/library/metadata/{r['plex_key']}"
-                f"&server={r.get('machine_id','')}"
-            )
+    results = _post_filter(results, filters)
+    results = _rank(results)
+    _build_urls(results)
 
     return {
         "results": results[body.offset: body.offset + body.limit],
@@ -102,12 +103,8 @@ async def recent(session: Annotated[dict, Depends(require_auth)],
 
 @router.get("/media/thumb/{plex_key:path}")
 async def thumb(plex_key: str, session: Annotated[dict, Depends(require_auth)]):
-    """Proxy thumbnail from Plex to avoid exposing token in frontend."""
     token = session["plex_token"]
-    from app.config import get_settings
-    settings = get_settings()
     url = f"{settings.plex_server_url}/library/metadata/{plex_key}/thumb"
-    from app.http_client import get_http_client
     client = get_http_client()
     try:
         r = await client.get(url, params={"X-Plex-Token": token}, timeout=10.0)
@@ -118,45 +115,33 @@ async def thumb(plex_key: str, session: Annotated[dict, Depends(require_auth)]):
 
 @router.post("/debug/search")
 async def debug_search(body: SearchRequest, session: Annotated[dict, Depends(require_auth)]):
-    """Returns parsed filters, top plex results, top vector results, and final merged — for tuning."""
-    token = session["plex_token"]
-    server = await plex_client.get_server(token)
     filters = await query_parser.parse_query(body.query)
-
-    has_plex_filter = any([
-        filters.genres, filters.year_from, filters.year_to,
-        filters.min_rating, filters.actors, filters.directors,
-        filters.media_type,
-    ])
-    if has_plex_filter:
-        plex_results = await plex_search.search_plex(server, filters, limit=200)
-        plex_results = [r for r in plex_results if r.get("genres")]
-    else:
-        plex_results = []
 
     try:
         embedding = await ai_client.embed(body.query)
-        vector_results = vector_store.query_similar(embedding, n_results=50)
+        results = vector_store.query_with_filters(
+            embedding=embedding,
+            media_type=filters.media_type,
+            year_from=filters.year_from,
+            year_to=filters.year_to,
+            min_rating=filters.min_rating,
+            genres=filters.genres,
+            actors=filters.actors,
+            directors=filters.directors,
+            n_results=100,
+        )
     except Exception as e:
-        vector_results = []
+        results = []
 
-    vector_results = [r for r in vector_results if r.get("genres")]
-    if filters.media_type:
-        vector_results = [r for r in vector_results if r.get("media_type") == filters.media_type]
-    if filters.exclude_titles:
-        excl = [t.lower() for t in filters.exclude_titles]
-        plex_results = [r for r in plex_results if not any(e in r.get("title","").lower() for e in excl)]
-        vector_results = [r for r in vector_results if not any(e in r.get("title","").lower() for e in excl)]
-
-    merged = merge_results(plex_results, vector_results, limit=body.limit)
+    results = _post_filter(results, filters)
+    ranked = _rank(list(results))
 
     return {
         "query": body.query,
         "llm_filters": filters.model_dump(exclude_none=True),
-        "plex_result_count": len(plex_results),
-        "plex_top5": [{"title": r["title"], "year": r.get("year"), "genres": r.get("genres")} for r in plex_results[:5]],
-        "vector_top5": [{"title": r["title"], "year": r.get("year"), "score": round(r.get("_vector_score", 0), 3)} for r in vector_results[:5]],
-        "merged_top10": [{"title": r["title"], "year": r.get("year"), "genres": r.get("genres")} for r in merged[:10]],
+        "chroma_result_count": len(results),
+        "top5": [{"title": r["title"], "year": r.get("year"), "genres": r.get("genres"), "score": round(r.get("_vector_score", 0), 3)} for r in results[:5]],
+        "merged_top10": [{"title": r["title"], "year": r.get("year"), "genres": r.get("genres")} for r in ranked[:10]],
     }
 
 
@@ -167,9 +152,19 @@ async def index_status(session: Annotated[dict, Depends(require_auth)]):
 
 @router.post("/admin/reindex")
 async def reindex(session: Annotated[dict, Depends(require_auth)]):
-    import asyncio
     token = session["plex_token"]
     if indexer.get_status()["state"] == "running":
         return {"message": "Indexing already in progress"}
     asyncio.create_task(indexer.run_indexing(token))
     return {"message": "Indexing started"}
+
+
+@router.post("/admin/clear-reindex")
+async def clear_reindex(session: Annotated[dict, Depends(require_auth)]):
+    """Wipe ChromaDB and reindex — required after schema changes."""
+    token = session["plex_token"]
+    if indexer.get_status()["state"] == "running":
+        return {"message": "Indexing already in progress"}
+    vector_store.clear_collection()
+    asyncio.create_task(indexer.run_indexing(token))
+    return {"message": "Collection cleared, reindexing started"}

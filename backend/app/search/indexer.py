@@ -40,14 +40,14 @@ def _build_index_text(item) -> str:
     ).strip()
 
 
-def _get_all_plex_items(token: str) -> list:
+def _get_all_plex_items(token: str) -> tuple[list, str]:
     from plexapi.server import PlexServer
     server = PlexServer(settings.plex_server_url, token)
     items = []
     for section in server.library.sections():
         if section.type in ("movie", "show"):
             items.extend(section.all())
-    return items
+    return items, server.machineIdentifier
 
 
 async def run_indexing(token: str) -> None:
@@ -56,7 +56,7 @@ async def run_indexing(token: str) -> None:
 
     try:
         loop = asyncio.get_event_loop()
-        items = await loop.run_in_executor(_executor, _get_all_plex_items, token)
+        items, machine_id = await loop.run_in_executor(_executor, _get_all_plex_items, token)
 
         existing_ids = vector_store.get_indexed_ids()
         to_index = [i for i in items if str(i.ratingKey) not in existing_ids]
@@ -75,6 +75,7 @@ async def run_indexing(token: str) -> None:
                 embeddings.append(vec)
                 metas.append({
                     "plex_key": str(item.ratingKey),
+                    "machine_id": machine_id,
                     "title": item.title,
                     "year": getattr(item, "year", None) or 0,
                     "media_type": item.type,
