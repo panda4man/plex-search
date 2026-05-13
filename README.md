@@ -10,7 +10,7 @@ Natural language search for your Plex library. Ask for *"sci-fi movies from the 
 
 Every search runs two paths in parallel and merges the results:
 
-1. **LLM filter extraction** — `qwen2.5:7b` converts your query into structured Plex filters (genre, year range, rating, actors). Fast, precise for structured queries.
+1. **LLM filter extraction** — `qwen2.5:14b` (or `7b` on 6GB VRAM) converts your query into structured Plex filters (genre, year range, rating, actors). Fast, precise for structured queries.
 2. **Semantic vector search** — `nomic-embed-text` embeds your query and finds similar content by meaning. Handles fuzzy queries that keywords can't.
 
 Everything runs locally. No data leaves your network.
@@ -33,7 +33,7 @@ Everything runs locally. No data leaves your network.
 ## Requirements
 
 - Docker + Docker Compose v2
-- NVIDIA GPU recommended (GTX 1660 Super 6GB or better)
+- NVIDIA GPU recommended (RTX 3060 12GB or better for `qwen2.5:14b`; GTX 1660 Super 6GB minimum for `qwen2.5:7b`)
   - `nvidia-container-toolkit` installed on host for GPU passthrough
   - CPU inference works but is slow (~30–120s per query)
 - Plex Media Server on the same network
@@ -61,7 +61,7 @@ SESSION_SECRET=$(openssl rand -hex 32)
 docker compose up --build
 ```
 
-On first boot Ollama pulls both models (~5GB total). Open `http://localhost` once the logs show *"All models ready."*
+On first boot Ollama pulls both models (~5GB for `qwen2.5:7b`, ~9.5GB for `qwen2.5:14b`). Open `http://localhost` once the logs show *"All models ready."*
 
 Sign in with your Plex account. The library indexes automatically in the background after first login.
 
@@ -78,7 +78,7 @@ All settings live in `.env`. Full reference in `.env.example`.
 | `PLEX_SERVER_URL` | — | LAN address of your Plex server |
 | `PLEX_CLIENT_ID` | — | Stable UUID for this app (generate once) |
 | `SESSION_SECRET` | — | 32-byte hex secret for session signing |
-| `OLLAMA_MODEL` | `qwen2.5:7b` | LLM for query parsing |
+| `OLLAMA_MODEL` | `qwen2.5:7b` / `qwen2.5:14b` | LLM for query parsing (14b recommended on 12GB VRAM) |
 | `OLLAMA_EMBED_MODEL` | `nomic-embed-text` | Embedding model |
 | `FRONTEND_URL` | `http://localhost` | Public URL (update for LAN/Cloudflare access) |
 | `SESSION_HTTPS_ONLY` | `false` | Set `true` behind HTTPS (Cloudflare Tunnel etc.) |
