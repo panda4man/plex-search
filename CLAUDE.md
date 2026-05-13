@@ -133,11 +133,11 @@ Do NOT set `true` on plain HTTP — browser will never send the cookie and all r
 
 ## Hardware (GPU)
 
-- **Current**: GTX 1660 Super — 6GB VRAM
-  - `qwen2.5:7b` ≈ 4.5GB + `nomic-embed-text` ≈ 274MB = ~4.8GB total ✓
-- **Upgrade path** (RTX 3060, 12GB): set `OLLAMA_MODEL=qwen2.5:14b` in `.env`
+- **Current**: RTX 3060 — 12GB VRAM
+  - `qwen2.5:14b` ≈ 9GB + `nomic-embed-text` ≈ 274MB = ~9.3GB total ✓
+  - Set `OLLAMA_MODEL=qwen2.5:14b` in `.env`
+  - Set `OLLAMA_KEEP_ALIVE=-1` in docker-compose to keep models in VRAM permanently
 - GPU passthrough in `docker-compose.yml` requires `nvidia-container-toolkit` on host
-- Ollama unloads idle models automatically if VRAM is tight
 
 ---
 
