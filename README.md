@@ -10,8 +10,11 @@ Natural language search for your Plex library. Ask for *"sci-fi movies from the 
 
 Every search runs two paths in parallel and merges the results:
 
-1. **LLM filter extraction** — `qwen2.5:14b` (or `7b` on 6GB VRAM) converts your query into structured Plex filters (genre, year range, rating, actors). Fast, precise for structured queries.
-2. **Semantic vector search** — `nomic-embed-text` embeds your query and finds similar content by meaning. Handles fuzzy queries that keywords can't.
+1. **LLM filter extraction** (`qwen2.5:14b`) — a language model reads your query and extracts structured Plex filters: genre, year range, minimum rating, actors, directors. Precise for anything that maps to a concrete filter — *"highly rated sci-fi from the 90s"* becomes `{genre: "Science Fiction", year_from: 1990, year_to: 1999, min_rating: 7.5}`.
+
+2. **Semantic vector search** (`nomic-embed-text`) — an embedding model converts your query and every item in your library into numerical vectors representing meaning. Finds content that's *semantically similar* to what you asked for, even when the words don't match — *"that show about meth in the desert"* finds *Breaking Bad* without those words appearing in its title.
+
+The two models cover each other's blind spots: the LLM handles structured constraints precisely, the embedding model handles fuzzy or descriptive queries the LLM can't map to a filter. Results from both paths are merged and re-ranked by a combined score.
 
 Everything runs locally. No data leaves your network.
 
