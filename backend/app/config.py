@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     plex_client_id: str
 
     # Ollama (used when llm_provider or embed_provider is "ollama")
-    ollama_base_url: str = "http://ollama:11434"
+    ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "qwen2.5:7b"
     ollama_embed_model: str = "nomic-embed-text"
 
