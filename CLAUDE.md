@@ -44,6 +44,10 @@ Docker services: `frontend` (nginx + Vue build), `backend` (FastAPI + ChromaDB e
 
 All AI calls go through `backend/app/llm/ai_client.py` (LiteLLM). Switch providers via `.env` — no code changes needed.
 
+**LLM role:** Parses natural language queries into structured filters. "Action movies from the 90s" → `{genre: "action", year_start: 1990, year_end: 1999}`. Needs a capable instruction-following model — parsing failures produce bad or empty results.
+
+**Embed role:** Converts text → dense vectors (numbers). Used at index time (each Plex item → vector stored in ChromaDB) and at search time (query → vector → cosine similarity lookup). Must stay consistent — switching embed models invalidates all stored vectors and requires full reindex.
+
 ### LLM (query parsing)
 
 | `LLM_PROVIDER` | Default model | Notes |
